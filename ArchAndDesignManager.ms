@@ -84,7 +84,7 @@ rollout GlobalMaterialSetting "Global Control" (
 		
 	GroupBox GRP_Preset "Presets" pos:[1315,0] width:143 height:35
 		dropDownList ddlPresets "" pos:[1320,12] width: 70 items:PreName
-		button bntSavePreset "Save" pos:[1392,12] width:30 height:20
+		button bntSavePreset "Set" pos:[1392,12] width:30 height:20
 		button bntRunPreset "Run" pos:[1424,12] width:30 height:20
 	
 	button bntApply "Apply All Changes" pos:[1463,5] width:92 height:30
@@ -121,8 +121,8 @@ rollout GlobalMaterialSetting "Global Control" (
 			)
 		
 		-- count materials in arch. array and over 220 stop
-		if archTmp.count > 220 do (
-			if not queryBox "Warning: you have more then 220 materials in your scene. Will you continue with display only 220?" title:"Arch And Design Manager" then (
+		if archTmp.count > 50 do (
+			if not queryBox "Warning: you have more then 50 materials in your scene. Will you continue with display only 50?" title:"Arch And Design Manager" then (
 				return false
 				)
 			)
@@ -130,7 +130,7 @@ rollout GlobalMaterialSetting "Global Control" (
 		-- sort the material array 
 		fn compMatNames name1 name2 = stricmp name1.name name2.name
  
-		archMtl = for mat in archTmp collect mat
+		archMtl = for i = 1 to archTmp.count where i <=50 collect archTmp[i]
 		qSort archMtl compMatNames
 		
 		-- build material rollouts
@@ -205,7 +205,9 @@ rollout GlobalMaterialSetting "Global Control" (
 	-- apply gobal reflection glossy sample	
 	on bntToRefl pressed do (
 		for mt in archMtl do (
-			mt.refl_samples = spnGlSample.value
+			if (mt.refl_gloss < 1.0 AND mt.refl_samples > spnOverSample.value AND mt.refl_samples < spnUnderSample.value) do (
+				mt.refl_samples = spnGlSample.value
+				)
 			)
 		archMtl = #()
 		for roll in rollArray do removeRollout roll
@@ -216,7 +218,9 @@ rollout GlobalMaterialSetting "Global Control" (
 	-- apply gobal refraction glossy sample	
 	on bntToRefr pressed do (
 		for mt in archMtl do (
-			mt.refr_samples = spnGlSample.value
+			if (mt.refr_gloss < 1.0 AND mt.refr_samples > spnOverSample.value AND mt.refr_samples < spnUnderSample.value) do (
+				mt.refr_samples = spnGlSample.value
+				)
 			)
 		archMtl = #()
 		for roll in rollArray do removeRollout roll
@@ -250,7 +254,7 @@ rollout GlobalMaterialSetting "Global Control" (
 		fillRollout()
 		)
 	
-	-- apply gobal special fffects settings	
+	-- apply gobal special effects settings	
 	on bntSpecials pressed do (
 		for mt in archMtl do (
 			mt.opts_backface_cull = chkBackFace.checked
@@ -380,6 +384,11 @@ rollout GlobalMaterialSetting "Global Control" (
 			archMtl[c].bump_map_on = rollArray[c].controls[28].checked
 			archMtl[c].bump_map_amt = rollArray[c].controls[29].value
 			)
+			
+		archMtl = #()
+		for roll in rollArray do removeRollout roll
+		rollArray = #()
+		fillRollout()	
 		
 		) -- bntApply end
 		
