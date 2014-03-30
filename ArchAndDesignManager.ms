@@ -28,7 +28,7 @@
 :: History --------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 ::
-:: This is version 0.1. Last bigger modification was on 2014-03-26
+:: This is version 0.75. Last bigger modification was on 2014-03-27
 :: 2014-03-26: build the script
 :: 2014-03-27: add most functions
 :: 2014-03-28: fix sampling
@@ -40,7 +40,7 @@
 --
 --  Script Name: Arch And Design Manager
 --
---  Author:   Jonathan Baecker (jb_alvardo) www.pixelcrusher.de | blog.pixelcrusher.de
+--  Author:   Jonathan Baecker (jb_alvardo) www.pixelcrusher.de | blog.pixelcrusher.de | www.animations-and-more.com
 --
 ----------------------------------------------------------------------------------------------------------------------
 */
