@@ -30,6 +30,9 @@
 ::
 :: This is version 0.1. Last bigger modification was on 2014-03-26
 :: 2014-03-26: build the script
+:: 2014-03-27: add most functions
+:: 2014-03-28: fix sampling
+:: 2014-03-30: add texture button and other fixes
 ::
 ----------------------------------------------------------------------------------------------------------------------
 
@@ -45,7 +48,7 @@
 clearlistener()
 try ( destroyDialog GlobalMaterialSetting ) catch ( )	
 
-DynamicUIRollout = newRolloutFloater "Arch And Design Manager" 1570 330
+MaterialRollout = newRolloutFloater "Arch And Design Manager" 1570 330
 
 rollout GlobalMaterialSetting "Global Control" (
 	--global variables
@@ -91,13 +94,13 @@ rollout GlobalMaterialSetting "Global Control" (
 	
 	-- function for fill up the preset array
 	fn fillPreset mS = (
-		join presetVar #( matPresets = #( mS.name, mS.diff_weight, mS.diff_color, mS.refl_weight, \
-			mS.refl_gloss, mS.refl_samples, mS.refl_interp, mS.refl_hlonly, mS.refl_metal, \
-			mS.refr_weight, mS.refr_gloss, mS.refr_samples, mS.refr_ior, mS.refr_interp, \ 
-			mS.refl_func_fresnel, mS.opts_ao_on, mS.opts_ao_samples, mS.opts_ao_exact, \
-			mS.opts_ao_distance, mS.opts_round_corners_on, mS.opts_round_corners_radius, \
-			mS.opts_1sided, mS.opts_backface_cull, mS.opts_propagate_alpha, \
-			mS.single_env_sample, mS.bump_map_on, mS.bump_map_amt ) )
+		join presetVar #( matPresets = #( mS.name, mS.diff_weight, mS.diff_color, mS.diff_color_map, \
+			mS.refl_weight, mS.refl_gloss, mS.refl_samples, mS.refl_interp, mS.refl_hlonly, \
+			mS.refl_metal, mS.refr_weight, mS.refr_gloss, mS.refr_samples, mS.refr_ior, \
+			mS.refr_interp, mS.refl_func_fresnel, mS.opts_ao_on, mS.opts_ao_samples, \
+			mS.opts_ao_exact, mS.opts_ao_distance, mS.opts_round_corners_on, \
+			mS.opts_round_corners_radius, mS.opts_1sided, mS.opts_backface_cull, \
+			mS.opts_propagate_alpha, mS.single_env_sample, mS.bump_map_on, mS.bump_map_amt ) )
 		)
 	
 	-- function for search arch and design materials and build roullouts
@@ -121,8 +124,8 @@ rollout GlobalMaterialSetting "Global Control" (
 			)
 		
 		-- count materials in arch. array and over 220 stop
-		if archTmp.count > 50 do (
-			if not queryBox "Warning: you have more then 50 materials in your scene. Will you continue with display only 50?" title:"Arch And Design Manager" then (
+		if archTmp.count > 90 do (
+			if not queryBox "Warning: you have more then 90 materials in your scene. Will you continue with display only 90?" title:"Arch And Design Manager" then (
 				return false
 				)
 			)
@@ -130,7 +133,7 @@ rollout GlobalMaterialSetting "Global Control" (
 		-- sort the material array 
 		fn compMatNames name1 name2 = stricmp name1.name name2.name
  
-		archMtl = for i = 1 to archTmp.count where i <=50 collect archTmp[i]
+		archMtl = for i = 1 to archTmp.count where i <=90 collect archTmp[i]
 		qSort archMtl compMatNames
 		
 		-- build material rollouts
@@ -139,7 +142,9 @@ rollout GlobalMaterialSetting "Global Control" (
 			UIcode += "("
 			UIcode += "GroupBox grpDiffuse" + a as string + " \"Diffuse" + "\"pos:[4,0] width:151 height:35 \n"
 			UIcode += "spinner spnLevel" + a as string + " \"Level:" + "\"pos:[40,15] width:45 range:[0.0,1.0," + archMtl[a].diff_weight as string + "]\n"
-			UIcode += "colorPicker picDiff" + a as string + " \"Color:" + "\"pos:[90,15] width:60 height:15 color:" + archMtl[a].diff_color as string + "\n"
+			UIcode += "colorPicker picDiff" + a as string + " \"" + "\"pos:[90,15] width:40 height:15 color:" + archMtl[a].diff_color as string + "\n"
+			UIcode += "mapButton picMap" + a as string + " \"" + "\"pos:[135,15] width:15 height:15 \n"
+
 			
 			UIcode += "GroupBox grpReflection" + a as string + " \"Reflection" + "\"pos:[160,0] width:380 height:35 \n"
 			UIcode += "spinner spnReflectivity" + a as string + " \"Refl.:" + "\"pos:[195,15] width:45 range:[0.0,1.0," + archMtl[a].refl_weight as string + "]\n"
@@ -172,7 +177,7 @@ rollout GlobalMaterialSetting "Global Control" (
 			UIcode += "checkbox chkBump" + a as string + " \"Bump" + "\"pos:[1469,15] width:45 checked:" + archMtl[a].bump_map_on as string + "\n"
 			UIcode += "spinner spnBump" + a as string + " \"" + "\"pos:[1515,15] width:35 range:[0.0,10.0," + archMtl[a].bump_map_amt as string + "]\n"
 			UIcode += ")"
-			UIcode += "addRollout MaterialSetting_" + a as string + " DynamicUIRollout"
+			UIcode += "addRollout MaterialSetting_" + a as string + " MaterialRollout"
 
 			execute UIcode
 			
@@ -182,16 +187,22 @@ rollout GlobalMaterialSetting "Global Control" (
 		append presetsArr presetVar
 			
 		-- save rollouts in array
-		for b = 1 to DynamicUIRollout.rollouts.count do (
+		for b = 1 to MaterialRollout.rollouts.count do (
 			if b > 1 do (
-				append rollArray DynamicUIRollout.rollouts[b]
+				append rollArray MaterialRollout.rollouts[b]
 				)
 			)
 			rollArray
 		) --fillRollout end
 	
 	on GlobalMaterialSetting open do (
-		fillRollout() 
+		fillRollout()
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		)
 		
 	-- refresh the material list
@@ -200,6 +211,13 @@ rollout GlobalMaterialSetting "Global Control" (
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
 		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		)
 		
 	-- apply gobal reflection glossy sample	
@@ -212,7 +230,14 @@ rollout GlobalMaterialSetting "Global Control" (
 		archMtl = #()
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
-		fillRollout()	
+		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		)
 		
 	-- apply gobal refraction glossy sample	
@@ -225,7 +250,14 @@ rollout GlobalMaterialSetting "Global Control" (
 		archMtl = #()
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
-		fillRollout()	
+		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		)	
 	
 	-- apply gobal AO settings
@@ -240,6 +272,13 @@ rollout GlobalMaterialSetting "Global Control" (
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
 		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		)
 		
 	-- apply gobal round corners settings	
@@ -252,6 +291,13 @@ rollout GlobalMaterialSetting "Global Control" (
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
 		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		)
 	
 	-- apply gobal special effects settings	
@@ -265,45 +311,60 @@ rollout GlobalMaterialSetting "Global Control" (
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
 		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		)		
 
-	-- Save material settings as preset
+	-- Set material settings as preset
 	on bntSavePreset pressed do (
 		for c = 1 to rollArray.count do (
 			archMtl[c].diff_weight = rollArray[c].controls[2].value
 			archMtl[c].diff_color = rollArray[c].controls[3].color
+			archMtl[c].diff_color_map = rollArray[c].controls[4].map
 			
-			archMtl[c].refl_weight = rollArray[c].controls[5].value
-			archMtl[c].refl_gloss = rollArray[c].controls[6].value
-			archMtl[c].refl_samples = rollArray[c].controls[7].value
-			archMtl[c].refl_interp = rollArray[c].controls[8].checked
-			archMtl[c].refl_hlonly = rollArray[c].controls[9].checked
-			archMtl[c].refl_metal = rollArray[c].controls[10].checked
+			archMtl[c].refl_weight = rollArray[c].controls[6].value
+			archMtl[c].refl_gloss = rollArray[c].controls[7].value
+			archMtl[c].refl_samples = rollArray[c].controls[8].value
+			archMtl[c].refl_interp = rollArray[c].controls[9].checked
+			archMtl[c].refl_hlonly = rollArray[c].controls[10].checked
+			archMtl[c].refl_metal = rollArray[c].controls[11].checked
 			
-			archMtl[c].refr_weight = rollArray[c].controls[12].value
-			archMtl[c].refr_gloss = rollArray[c].controls[13].value
-			archMtl[c].refr_samples = rollArray[c].controls[14].value
-			archMtl[c].refr_ior = rollArray[c].controls[15].value
-			archMtl[c].refr_interp = rollArray[c].controls[16].checked
+			archMtl[c].refr_weight = rollArray[c].controls[13].value
+			archMtl[c].refr_gloss = rollArray[c].controls[14].value
+			archMtl[c].refr_samples = rollArray[c].controls[15].value
+			archMtl[c].refr_ior = rollArray[c].controls[16].value
+			archMtl[c].refr_interp = rollArray[c].controls[17].checked
 			
-			archMtl[c].refl_func_fresnel = if rollArray[c].controls[18].state == 1 then on else off
+			archMtl[c].refl_func_fresnel = if rollArray[c].controls[19].state == 1 then on else off
 			
-			archMtl[c].opts_ao_on = rollArray[c].controls[20].checked
-			archMtl[c].opts_ao_samples = rollArray[c].controls[21].value
-			archMtl[c].opts_ao_distance = rollArray[c].controls[22].value
-			archMtl[c].opts_round_corners_on = rollArray[c].controls[23].checked
-			archMtl[c].opts_round_corners_radius = rollArray[c].controls[24].value
+			archMtl[c].opts_ao_on = rollArray[c].controls[21].checked
+			archMtl[c].opts_ao_samples = rollArray[c].controls[22].value
+			archMtl[c].opts_ao_distance = rollArray[c].controls[23].value
+			archMtl[c].opts_round_corners_on = rollArray[c].controls[24].checked
+			archMtl[c].opts_round_corners_radius = rollArray[c].controls[25].value
 
-			archMtl[c].opts_1sided = if rollArray[c].controls[26].state == 1 then off else on
-			archMtl[c].opts_backface_cull = rollArray[c].controls[27].checked
-			archMtl[c].bump_map_on = rollArray[c].controls[28].checked
-			archMtl[c].bump_map_amt = rollArray[c].controls[29].value
+			archMtl[c].opts_1sided = if rollArray[c].controls[27].state == 1 then off else on
+			archMtl[c].opts_backface_cull = rollArray[c].controls[28].checked
+			archMtl[c].bump_map_on = rollArray[c].controls[29].checked
+			archMtl[c].bump_map_amt = rollArray[c].controls[30].value
 			)
 			
 		archMtl = #()
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
 		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		
 		join PreName #("Preset " + PreNum as string )
 		ddlPresets.items = PreName
@@ -319,37 +380,45 @@ rollout GlobalMaterialSetting "Global Control" (
 			if archMtl[m].name == presetsArr[pS][m][1] do (
 				archMtl[m].diff_weight = presetsArr[pS][m][2]
 				archMtl[m].diff_color = presetsArr[pS][m][3]
-				archMtl[m].refl_weight = presetsArr[pS][m][4]
-				archMtl[m].refl_gloss = presetsArr[pS][m][5]
-				archMtl[m].refl_samples = presetsArr[pS][m][6]
-				archMtl[m].refl_interp = presetsArr[pS][m][7]
-				archMtl[m].refl_hlonly = presetsArr[pS][m][8]
-				archMtl[m].refl_metal = presetsArr[pS][m][9]
-				archMtl[m].refr_weight = presetsArr[pS][m][10]
-				archMtl[m].refr_gloss = presetsArr[pS][m][11]
-				archMtl[m].refr_samples = presetsArr[pS][m][12]
-				archMtl[m].refr_ior = presetsArr[pS][m][13]
-				archMtl[m].refr_interp = presetsArr[pS][m][14]
-				archMtl[m].refl_func_fresnel = presetsArr[pS][m][15]
-				archMtl[m].opts_ao_on = presetsArr[pS][m][16]
-				archMtl[m].opts_ao_samples = presetsArr[pS][m][17]
-				archMtl[m].opts_ao_exact = presetsArr[pS][m][18]
-				archMtl[m].opts_ao_distance = presetsArr[pS][m][19]
-				archMtl[m].opts_round_corners_on = presetsArr[pS][m][20]
-				archMtl[m].opts_round_corners_radius = presetsArr[pS][m][21]
-				archMtl[m].opts_1sided = presetsArr[pS][m][22]
-				archMtl[m].opts_backface_cull = presetsArr[pS][m][23]
-				archMtl[m].opts_propagate_alpha = presetsArr[pS][m][24]
-				archMtl[m].single_env_sample = presetsArr[pS][m][25]
-				archMtl[m].bump_map_on = presetsArr[pS][m][26]
-				archMtl[m].bump_map_amt = presetsArr[pS][m][27]
-				) 
+				archMtl[m].diff_color_map = presetsArr[pS][m][4]
+				archMtl[m].refl_weight = presetsArr[pS][m][5]
+				archMtl[m].refl_gloss = presetsArr[pS][m][6]
+				archMtl[m].refl_samples = presetsArr[pS][m][7]
+				archMtl[m].refl_interp = presetsArr[pS][m][8]
+				archMtl[m].refl_hlonly = presetsArr[pS][m][9]
+				archMtl[m].refl_metal = presetsArr[pS][m][10]
+				archMtl[m].refr_weight = presetsArr[pS][m][11]
+				archMtl[m].refr_gloss = presetsArr[pS][m][12]
+				archMtl[m].refr_samples = presetsArr[pS][m][13]
+				archMtl[m].refr_ior = presetsArr[pS][m][14]
+				archMtl[m].refr_interp = presetsArr[pS][m][15]
+				archMtl[m].refl_func_fresnel = presetsArr[pS][m][16]
+				archMtl[m].opts_ao_on = presetsArr[pS][m][17]
+				archMtl[m].opts_ao_samples = presetsArr[pS][m][18]
+				archMtl[m].opts_ao_exact = presetsArr[pS][m][19]
+				archMtl[m].opts_ao_distance = presetsArr[pS][m][20]
+				archMtl[m].opts_round_corners_on = presetsArr[pS][m][21]
+				archMtl[m].opts_round_corners_radius = presetsArr[pS][m][22]
+				archMtl[m].opts_1sided = presetsArr[pS][m][23]
+				archMtl[m].opts_backface_cull = presetsArr[pS][m][24]
+				archMtl[m].opts_propagate_alpha = presetsArr[pS][m][25]
+				archMtl[m].single_env_sample = presetsArr[pS][m][26]
+				archMtl[m].bump_map_on = presetsArr[pS][m][27]
+				archMtl[m].bump_map_amt = presetsArr[pS][m][28]
+				)
 			)
 			
 		archMtl = #()
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
-		fillRollout()	
+		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		)
 		
 	on bntApply pressed do (
@@ -357,41 +426,49 @@ rollout GlobalMaterialSetting "Global Control" (
 		for c = 1 to rollArray.count do (
 			archMtl[c].diff_weight = rollArray[c].controls[2].value
 			archMtl[c].diff_color = rollArray[c].controls[3].color
+			archMtl[c].diff_color_map = rollArray[c].controls[4].map
 			
-			archMtl[c].refl_weight = rollArray[c].controls[5].value
-			archMtl[c].refl_gloss = rollArray[c].controls[6].value
-			archMtl[c].refl_samples = rollArray[c].controls[7].value
-			archMtl[c].refl_interp = rollArray[c].controls[8].checked
-			archMtl[c].refl_hlonly = rollArray[c].controls[9].checked
-			archMtl[c].refl_metal = rollArray[c].controls[10].checked
+			archMtl[c].refl_weight = rollArray[c].controls[6].value
+			archMtl[c].refl_gloss = rollArray[c].controls[7].value
+			archMtl[c].refl_samples = rollArray[c].controls[8].value
+			archMtl[c].refl_interp = rollArray[c].controls[9].checked
+			archMtl[c].refl_hlonly = rollArray[c].controls[10].checked
+			archMtl[c].refl_metal = rollArray[c].controls[11].checked
 			
-			archMtl[c].refr_weight = rollArray[c].controls[12].value
-			archMtl[c].refr_gloss = rollArray[c].controls[13].value
-			archMtl[c].refr_samples = rollArray[c].controls[14].value
-			archMtl[c].refr_ior = rollArray[c].controls[15].value
-			archMtl[c].refr_interp = rollArray[c].controls[16].checked
+			archMtl[c].refr_weight = rollArray[c].controls[13].value
+			archMtl[c].refr_gloss = rollArray[c].controls[14].value
+			archMtl[c].refr_samples = rollArray[c].controls[15].value
+			archMtl[c].refr_ior = rollArray[c].controls[16].value
+			archMtl[c].refr_interp = rollArray[c].controls[17].checked
 			
-			archMtl[c].refl_func_fresnel = if rollArray[c].controls[18].state == 1 then on else off
+			archMtl[c].refl_func_fresnel = if rollArray[c].controls[19].state == 1 then on else off
 			
-			archMtl[c].opts_ao_on = rollArray[c].controls[20].checked
-			archMtl[c].opts_ao_samples = rollArray[c].controls[21].value
-			archMtl[c].opts_ao_distance = rollArray[c].controls[22].value
-			archMtl[c].opts_round_corners_on = rollArray[c].controls[23].checked
-			archMtl[c].opts_round_corners_radius = rollArray[c].controls[24].value
+			archMtl[c].opts_ao_on = rollArray[c].controls[21].checked
+			archMtl[c].opts_ao_samples = rollArray[c].controls[22].value
+			archMtl[c].opts_ao_distance = rollArray[c].controls[23].value
+			archMtl[c].opts_round_corners_on = rollArray[c].controls[24].checked
+			archMtl[c].opts_round_corners_radius = rollArray[c].controls[25].value
 
-			archMtl[c].opts_1sided = if rollArray[c].controls[26].state == 1 then off else on
-			archMtl[c].opts_backface_cull = rollArray[c].controls[27].checked
-			archMtl[c].bump_map_on = rollArray[c].controls[28].checked
-			archMtl[c].bump_map_amt = rollArray[c].controls[29].value
+			archMtl[c].opts_1sided = if rollArray[c].controls[27].state == 1 then off else on
+			archMtl[c].opts_backface_cull = rollArray[c].controls[28].checked
+			archMtl[c].bump_map_on = rollArray[c].controls[29].checked
+			archMtl[c].bump_map_amt = rollArray[c].controls[30].value
 			)
 			
 		archMtl = #()
 		for roll in rollArray do removeRollout roll
 		rollArray = #()
-		fillRollout()	
+		fillRollout()
+		
+		for i = 1 to archMtl.count do (
+			if archMtl[i].diff_color_map != undefined do (
+				rollArray[i].controls[4].map = archMtl[i].diff_color_map
+				rollArray[i].controls[4].text = "M"
+				)
+			)
 		
 		) -- bntApply end
 		
 	) --rollout end
 
-addRollout GlobalMaterialSetting DynamicUIRollout rolledUp:false
+addRollout GlobalMaterialSetting MaterialRollout rolledUp:false
