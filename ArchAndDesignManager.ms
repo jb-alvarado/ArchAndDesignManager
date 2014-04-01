@@ -33,6 +33,7 @@
 :: 2014-03-27: add most functions
 :: 2014-03-28: fix sampling
 :: 2014-03-30: add texture button and other fixes
+:: 2014-04-01: add rightclick menu for bitmap
 ::
 ----------------------------------------------------------------------------------------------------------------------
 
@@ -45,7 +46,6 @@
 ----------------------------------------------------------------------------------------------------------------------
 */
 
-clearlistener()
 try ( destroyDialog GlobalMaterialSetting ) catch ( )	
 
 MaterialRollout = newRolloutFloater "Arch And Design Manager" 1570 330
@@ -59,7 +59,6 @@ rollout GlobalMaterialSetting "Global Control" (
 	local presetVar = #()
 	local PreName = #("Preset 0")
 	local PreNum = 1
-	local rcObj = ""
 	
 	button bntRefresh "Refresh List" pos:[3,5] width:70 height:30
 	
@@ -139,74 +138,61 @@ rollout GlobalMaterialSetting "Global Control" (
 
 		-- build material rollouts
 		for a = 1 to archMtl.count do (
-			UIcode = "rollout MaterialSetting_" + a as string +  " \"" + archMtl[a].name + "\"\n"
-			UIcode += "(\n"
-			UIcode += "GroupBox grpDiffuse" + a as string + " \"Diffuse\" pos:[4,0] width:151 height:35 \n"
-			UIcode += "spinner spnLevel" + a as string + " \"Level:\" pos:[40,15] width:45 range:[0.0,1.0," + archMtl[a].diff_weight as string + "]\n"
-			UIcode += "colorPicker picDiff" + a as string + " \"\" pos:[90,15] width:40 height:15 color:" + archMtl[a].diff_color as string + "\n"
-			UIcode += "mapButton picMap" + a as string + " \"\" pos:[135,15] width:15 height:15 \n"
+			ro = "rollout MaterialSetting_" + a as string +  " \"" + archMtl[a].name + "\"\n"
+			ro += "(\n"
+			ro += "GroupBox grpDiffuse" + a as string + " \"Diffuse\" pos:[4,0] width:151 height:35 \n"
+			ro += "spinner spnLevel" + a as string + " \"Level:\" pos:[40,15] width:45 range:[0.0,1.0," + archMtl[a].diff_weight as string + "]\n"
+			ro += "colorPicker picDiff" + a as string + " \"\" pos:[90,15] width:40 height:15 color:" + archMtl[a].diff_color as string + "\n"
+			ro += "mapButton picMap" + a as string + " \"\" pos:[135,15] width:15 height:15 \n"
 
-			UIcode += "fn createMenu" + a as string + " = (\n"
-			UIcode += "if picMap" + a as string + ".map != undefined then (\n"
-			UIcode += "rcMenu rcMap" + a as string + " (\n"
-			UIcode += "menuItem cutM \"Cut\"\n"
-			UIcode += "menuItem copyM \"Copy\"\n"
-			UIcode += "menuItem ClearM \"Clear\"\n"
-			UIcode += "on cutM picked do ( rcObj = picMap" + a as string + ".map; picMap" + a as string + ".map = undefined; picMap" + a as string + ".text = \"\" )\n"
-			UIcode += "on copyM picked do ( rcObj = picMap" + a as string + ".map )\n"
-			UIcode += "on ClearM picked do ( picMap" + a as string + ".map = undefined; picMap" + a as string + ".text = \"\" )\n"
-			UIcode += ")\n"
-			UIcode += "popUpMenu rcMap" + a as string + "\n"
-			UIcode += ") else (\n"
-			UIcode += "rcMenu rcMap" + a as string + " (\n"
-			UIcode += "menuItem cutM \"Paste (Copy)\"\n"
-			UIcode += "menuItem copyM \"Paste (Instance)\"\n"
-			UIcode += "on copyM picked do ( rcObj = picMap" + a as string + ".map )\n"
-			UIcode += "on ClearM picked do ( picMap" + a as string + ".map = undefined; picMap" + a as string + ".text = \"\" )\n"
-			UIcode += ")\n"
-			UIcode += "popUpMenu rcMap" + a as string + "\n"
-			UIcode += ")\n"
-			UIcode += ")\n"
-			--UIcode += "createMenu" + a as string + "() \n"
-			UIcode += "on picMap" + a as string + " picked texmap do if picMap" + a as string + ".map != undefined do picMap" + a as string + ".text = \"M\" \n"
-			UIcode += "on picMap" + a as string + " rightclick do createMenu" + a as string + "() \n"
+			ro += "fn createMenu" + a as string + " = (\n"
+			ro += "	if picMap" + a as string + ".map != undefined do (\n"
+			ro += "		rcMenu rcMap" + a as string + " (\n"
+			ro += "		menuItem ClearM \"Clear\"\n"
+			ro += "		on ClearM picked do ( picMap" + a as string + ".map = undefined; picMap" + a as string + ".text = \"\" )\n"
+			ro += "		)\n"
+			ro += "		popUpMenu rcMap" + a as string + "\n"
+			ro += "		)\n"
+			ro += "	)\n"
+			ro += "on picMap" + a as string + " picked texmap do if picMap" + a as string + ".map != undefined do picMap" + a as string + ".text = \"M\" \n"
+			ro += "on picMap" + a as string + " rightclick do createMenu" + a as string + "() \n"
 			
-			UIcode += "GroupBox grpReflection" + a as string + " \"Reflection\" pos:[160,0] width:380 height:35 \n"
-			UIcode += "spinner spnReflectivity" + a as string + " \"Refl.:\" pos:[195,15] width:45 range:[0.0,1.0," + archMtl[a].refl_weight as string + "]\n"
-			UIcode += "spinner spnGlossiness" + a as string + " \"Gloss.:\" pos:[275,15] width:45 range:[0.0,1.0," + archMtl[a].refl_gloss as string + "]\n"
-			UIcode += "spinner spnReflSample" + a as string + " \"Sample:\" pos:[360,15] width:35 type:#integer range:[0,1000," + archMtl[a].refl_samples as string + "]\n"
-			UIcode += "checkbox chkFast" + a as string + " \"Fast\" pos:[400,15] width:40 checked:" + archMtl[a].refl_interp as string + "\n"
-			UIcode += "checkbox chkHlonly" + a as string + " \"Highl.\" pos:[443,15] width:45 checked:" + archMtl[a].refl_hlonly as string + "\n"
-			UIcode += "checkbox chkMetal" + a as string + " \"Metal\" pos:[490,15] width:45 checked:" + archMtl[a].refl_metal as string + "\n"
+			ro += "GroupBox grpReflection" + a as string + " \"Reflection\" pos:[160,0] width:380 height:35 \n"
+			ro += "spinner spnReflectivity" + a as string + " \"Refl.:\" pos:[195,15] width:45 range:[0.0,1.0," + archMtl[a].refl_weight as string + "]\n"
+			ro += "spinner spnGlossiness" + a as string + " \"Gloss.:\" pos:[275,15] width:45 range:[0.0,1.0," + archMtl[a].refl_gloss as string + "]\n"
+			ro += "spinner spnReflSample" + a as string + " \"Sample:\" pos:[360,15] width:35 type:#integer range:[0,1000," + archMtl[a].refl_samples as string + "]\n"
+			ro += "checkbox chkFast" + a as string + " \"Fast\" pos:[400,15] width:40 checked:" + archMtl[a].refl_interp as string + "\n"
+			ro += "checkbox chkHlonly" + a as string + " \"Highl.\" pos:[443,15] width:45 checked:" + archMtl[a].refl_hlonly as string + "\n"
+			ro += "checkbox chkMetal" + a as string + " \"Metal\" pos:[490,15] width:45 checked:" + archMtl[a].refl_metal as string + "\n"
 			
-			UIcode += "GroupBox grpRefraction" + a as string + " \"Refraction\" pos:[545,0] width:363 height:35 \n"
-			UIcode += "spinner spnTransparency" + a as string + " \"Transp.:\" pos:[590,15] width:45 range:[0.0,1.0," + archMtl[a].refr_weight as string + "]\n"
-			UIcode += "spinner spnTGlossiness" + a as string + " \"Gloss.:\" pos:[670,15] width:45 range:[0.0,1.0," + archMtl[a].refr_gloss as string + "]\n"
-			UIcode += "spinner spnTransSample" + a as string + " \"Sample:\" pos:[755,15] width:35 type:#integer range:[0,1000," + archMtl[a].refr_samples as string + "]\n"
-			UIcode += "spinner spnTIOR" + a as string + " \"IOR:\" pos:[815,15] width:45 range:[0.1,50.0," + archMtl[a].refr_ior as string + "]\n"
-			UIcode += "checkbox chkTFast" + a as string + " \"Fast\" pos:[865,15] width:40 checked:" + archMtl[a].refr_interp as string + "\n"
+			ro += "GroupBox grpRefraction" + a as string + " \"Refraction\" pos:[545,0] width:363 height:35 \n"
+			ro += "spinner spnTransparency" + a as string + " \"Transp.:\" pos:[590,15] width:45 range:[0.0,1.0," + archMtl[a].refr_weight as string + "]\n"
+			ro += "spinner spnTGlossiness" + a as string + " \"Gloss.:\" pos:[670,15] width:45 range:[0.0,1.0," + archMtl[a].refr_gloss as string + "]\n"
+			ro += "spinner spnTransSample" + a as string + " \"Sample:\" pos:[755,15] width:35 type:#integer range:[0,1000," + archMtl[a].refr_samples as string + "]\n"
+			ro += "spinner spnTIOR" + a as string + " \"IOR:\" pos:[815,15] width:45 range:[0.1,50.0," + archMtl[a].refr_ior as string + "]\n"
+			ro += "checkbox chkTFast" + a as string + " \"Fast\" pos:[865,15] width:40 checked:" + archMtl[a].refr_interp as string + "\n"
 			
-			UIcode += "GroupBox grpBRDF" + a as string + " \"BRDF\" pos:[913,0] width:107 height:35 \n"
-			UIcode += "radioButtons radBRDF" + a as string + " \"\" pos:[918,15] labels:#(\"IOR\",\"Custom\") default:" + ( if archMtl[a].refl_func_fresnel == on then 1 else 2 ) as string + "\n"
+			ro += "GroupBox grpBRDF" + a as string + " \"BRDF\" pos:[913,0] width:107 height:35 \n"
+			ro += "radioButtons radBRDF" + a as string + " \"\" pos:[918,15] labels:#(\"IOR\",\"Custom\") default:" + ( if archMtl[a].refl_func_fresnel == on then 1 else 2 ) as string + "\n"
 			
-			UIcode += "GroupBox grpAO" + a as string + " \"Effects\" pos:[1025,0] width:282 height:35 \n"
-			UIcode += "checkbox chkAO" + a as string + " \"AO\" pos:[1030,15] width:33 checked:" + archMtl[a].opts_ao_on as string + "\n"
-			UIcode += "spinner spnAOSample" + a as string + " \"Smp.:\" pos:[1095,15] width:35 type:#integer range:[0,1000," + archMtl[a].opts_ao_samples as string + "]\n"
-			UIcode += "spinner spnAODist" + a as string + " \"Dist.:\" pos:[1161,15] width:35 range:[0.0,100000.0," + archMtl[a].opts_ao_distance as string + "]\n"
-			UIcode += "checkbox chkRound" + a as string + " \"Round C.\" pos:[1200,15] width:62 checked:" + archMtl[a].opts_round_corners_on as string + "\n"
-			UIcode += "spinner spnRound" + a as string + " \"\" pos:[1262,15] width:40 range:[0.0,100000.0," + archMtl[a].opts_round_corners_radius as string + "]\n"
+			ro += "GroupBox grpAO" + a as string + " \"Effects\" pos:[1025,0] width:282 height:35 \n"
+			ro += "checkbox chkAO" + a as string + " \"AO\" pos:[1030,15] width:33 checked:" + archMtl[a].opts_ao_on as string + "\n"
+			ro += "spinner spnAOSample" + a as string + " \"Smp.:\" pos:[1095,15] width:35 type:#integer range:[0,1000," + archMtl[a].opts_ao_samples as string + "]\n"
+			ro += "spinner spnAODist" + a as string + " \"Dist.:\" pos:[1161,15] width:35 range:[0.0,100000.0," + archMtl[a].opts_ao_distance as string + "]\n"
+			ro += "checkbox chkRound" + a as string + " \"Round C.\" pos:[1200,15] width:62 checked:" + archMtl[a].opts_round_corners_on as string + "\n"
+			ro += "spinner spnRound" + a as string + " \"\" pos:[1262,15] width:40 range:[0.0,100000.0," + archMtl[a].opts_round_corners_radius as string + "]\n"
 			
-			UIcode += "GroupBox grpSpecial" + a as string + " \"Special Options\" pos:[1312,0] width:243 height:35 \n"
-			UIcode += "radioButtons radGlass" + a as string + " \"\" pos:[1315,15] width:40 labels:#(\"Solid\",\"Thin\") default:" + ( if archMtl[a].opts_1sided == off then 1 else 2 ) as string + "\n"
-			UIcode += "checkbox chkBackFace" + a as string + " \"BackFace\" pos:[1402,15] width:65 checked:" + archMtl[a].opts_backface_cull as string + "\n"
-			UIcode += "checkbox chkBump" + a as string + " \"Bump\" pos:[1469,15] width:45 checked:" + archMtl[a].bump_map_on as string + "\n"
-			UIcode += "spinner spnBump" + a as string + " \"\" pos:[1515,15] width:35 range:[0.0,10.0," + archMtl[a].bump_map_amt as string + "]\n"
+			ro += "GroupBox grpSpecial" + a as string + " \"Special Options\" pos:[1312,0] width:243 height:35 \n"
+			ro += "radioButtons radGlass" + a as string + " \"\" pos:[1315,15] width:40 labels:#(\"Solid\",\"Thin\") default:" + ( if archMtl[a].opts_1sided == off then 1 else 2 ) as string + "\n"
+			ro += "checkbox chkBackFace" + a as string + " \"BackFace\" pos:[1402,15] width:65 checked:" + archMtl[a].opts_backface_cull as string + "\n"
+			ro += "checkbox chkBump" + a as string + " \"Bump\" pos:[1469,15] width:45 checked:" + archMtl[a].bump_map_on as string + "\n"
+			ro += "spinner spnBump" + a as string + " \"\" pos:[1515,15] width:35 range:[0.0,10.0," + archMtl[a].bump_map_amt as string + "]\n"
 			
-			UIcode += ")\n"
+			ro += ")\n"
 			
-			UIcode += "addRollout MaterialSetting_" + a as string + " MaterialRollout"
+			ro += "addRollout MaterialSetting_" + a as string + " MaterialRollout"
 
-			execute UIcode as string
+			execute ro as string
 			
 			fillPreset archMtl[a]
 			)
